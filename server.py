@@ -13,9 +13,9 @@ server_socket.listen(0)
 # naming the outputfile
 startdate=datetime.datetime.now()
 startdate=datetime.datetime.strftime(startdate,"%H%M%S-%d%m%Y")
-videofile=startdate+".avi"
+videofile=startdate+".mp4"
 # Writing to video file using ffmpeg.
-p = Popen(['ffmpeg', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-r', '2', '-i', '-', '-vcodec', 'mpeg4', '-q:v', '1', '-r', '2', videofile], stdin=PIPE)
+p = Popen(['ffmpeg', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-r', '8', '-i', '-', '-vcodec', 'mpeg4', '-q:v', '1', '-r', '8', videofile], stdin=PIPE)
 
 # Accept a single connection and make a file-like object out of it
 connection = server_socket.accept()[0].makefile('rb')
@@ -46,6 +46,7 @@ try:
         print('Image is %dx%d' % image.size)
         image.verify()
         print('Image is verified')
+        print("warning: disconnecting from server side will lead to stream not being saved. disconnect from client side.")
 finally:
     connection.close()
     server_socket.close()

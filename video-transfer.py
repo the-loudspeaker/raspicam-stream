@@ -7,12 +7,19 @@ import datetime
 
 header_struct=struct.Struct('!I')
 
+#define the frame size and fps
+frame_width=1280 # 1280 or 640
+frame_height=720 # 720 or 480
+fps=30
+size=(int(frame_width), int(frame_height))
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
 def recvall(sock,length):
 	blocks=[]
 	while length:
 		block=sock.recv(length)
 		if not block:
-			raise EOFError('socket closed with %d bytes left in this block'.format(length))
+			raise EOFError('socket closed')
 		length-=len(block)
 		blocks.append(block)
 	return b''.join(blocks)
@@ -35,6 +42,12 @@ def server(address):
 	print("Run this script in another window with '-c' to connect")
 	sc, sockname=sock.accept()
 	print('Accepted connection from',sockname)
+
+	startdate=datetime.datetime.now()
+	startdate=datetime.datetime.strftime(startdate,"%H%M%S-%d%m%Y")
+	videofile=startdate+".mp4"
+	video_writer = cv2.VideoWriter(videofile, fourcc, fps, size)
+
 	sc.shutdown(socket.SHUT_WR)
 	cv2.namedWindow("LiveStream")
 	while True:
@@ -44,17 +57,13 @@ def server(address):
 		frameData=pickle.loads(block)
 		print (frameData)
 		cv2.imshow("Livestream",frameData)
+		video_writer.write(frameData)
 		cv2.waitKey(20)
 	cv2.destroyWindow("Livestream")
 	sc.close()
 	sock.close()
 
 def client(address):
-	#define the frame size and fps
-	frame_width=680
-	frame_height=480
-	fps=30
-
 	sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	sock.connect(address)
 	sock.shutdown(socket.SHUT_RD)
@@ -67,8 +76,6 @@ def client(address):
 
 	cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
 	cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
-	size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-	fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 	video_writer = cv2.VideoWriter(videofile, fourcc, fps, size)
 	
 	## send frame to server.
@@ -77,6 +84,7 @@ def client(address):
 	else:
 		ret, frame=cap.read()
 		while ret:
+			frame = cv2.flip(frame,1)
 			data=pickle.dumps(frame)
 			put_block(sock,data)        ##sends it to server.
 			video_writer.write(frame)   ##saves it to video file.
